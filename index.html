@@ -646,6 +646,8 @@ textarea.fi{resize:vertical;min-height:70px;}
       <div class="fg"><label class="fl">Fecha de inicio</label><input class="fi" id="meso-start" type="date"></div>
       <div class="fg"><label class="fl">Semanas</label>
         <div class="chips" id="chips-meso-dur">
+          <button class="chip" data-val="2" onclick="chip(this,'chips-meso-dur','sa')">2 sem</button>
+          <button class="chip" data-val="3" onclick="chip(this,'chips-meso-dur','sa')">3 sem</button>
           <button class="chip sa" data-val="4" onclick="chip(this,'chips-meso-dur','sa')">4 sem</button>
           <button class="chip" data-val="6" onclick="chip(this,'chips-meso-dur','sa')">6 sem</button>
           <button class="chip" data-val="8" onclick="chip(this,'chips-meso-dur','sa')">8 sem</button>
@@ -1743,7 +1745,8 @@ function renderSessionsDetail(data){
       <div class="session-head" onclick="toggleSession(${si})">
         <input class="session-title-input" value="${s.name||'Sesión '+(si+1)}" onchange="renameSession(${si},this.value)" onclick="event.stopPropagation()" placeholder="Nombre de la sesión">
         <span style="font-size:11px;color:var(--text3);margin-left:auto">${s.exercises?s.exercises.length:0} ejercicios</span>
-        <button class="btn btn-s btn-sm" style="font-size:10px;padding:3px 9px" onclick="event.stopPropagation();openCopySession(${si})" title="Copiar sesión">⧉ Copiar</button>
+        <button class="btn btn-s btn-sm" style="font-size:10px;padding:3px 9px" onclick="event.stopPropagation();duplicateSession(${si})" title="Duplicar sesión">⧉ Duplicar</button>
+        <button class="btn btn-s btn-sm" style="font-size:10px;padding:3px 9px" onclick="event.stopPropagation();openCopySession(${si})" title="Copiar a otro mesociclo">↗ Copiar</button>
         <button class="del-btn" onclick="event.stopPropagation();deleteSession(${si})">✕</button>
       </div>
       <div class="session-body" id="sb-${si}">
@@ -1786,6 +1789,16 @@ function addSession(){
 function deleteSession(si){
   const data=getEditorData();if(!data)return;
   data.sessions.splice(si,1);saveDB();renderEditor();
+}
+function duplicateSession(si){
+  const data=getEditorData();if(!data)return;
+  const original=data.sessions[si];
+  const copy=JSON.parse(JSON.stringify(original));
+  copy.id=uid();
+  copy.name=original.name+' (copia)';
+  copy.exercises=(copy.exercises||[]).map(function(ex){return Object.assign({},ex,{id:uid()});});
+  data.sessions.splice(si+1,0,copy);
+  saveDB();renderEditor();
 }
 // ─── COPY SESSION ─────────────────────────────────────────────────────────────
 let copySessIdx=null;
