@@ -293,6 +293,31 @@ textarea.fi{resize:vertical;min-height:70px;}
 .monitor-list li{padding:4px 0;font-size:12px;color:var(--text2);line-height:1.6;}
 .mob-btn{display:none;position:fixed;top:14px;left:14px;z-index:200;padding:7px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;cursor:pointer;}
 @media(max-width:768px){.mob-btn{display:flex;}}
+/* ── PROGRAMA: estado actual ── */
+.prog-status-block{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:16px 18px;margin-bottom:20px;}
+.prog-status-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.prog-status-item{flex:1;min-width:140px;background:var(--surface);border-radius:var(--rs);padding:10px 12px;border-left:3px solid var(--border2);}
+.prog-status-item.is-macro{border-left-color:var(--accent);}
+.prog-status-item.is-meso{border-left-color:var(--purple);}
+.prog-status-item.is-micro{border-left-color:var(--teal);}
+.prog-status-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:3px;}
+.prog-status-val{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;}
+.prog-status-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.prog-status-bar{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-top:8px;}
+.prog-status-bar-fill{height:100%;border-radius:2px;}
+/* ── PROGRAMA: planificacion desplegable ── */
+.macro-collapse{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;}
+.macro-collapse.is-current{border-color:var(--accent);}
+.macro-collapse-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none;}
+.macro-collapse-head:hover{background:var(--surface);}
+.macro-collapse-title{font-size:13px;font-weight:600;color:var(--text);}
+.macro-collapse-title.is-current{color:var(--accent);}
+.macro-collapse-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.macro-collapse-body{padding:0 16px 14px;display:none;}
+.macro-collapse.open .macro-collapse-body{display:block;}
+.macro-collapse-arrow{font-size:11px;color:var(--text3);transition:transform .2s;}
+.macro-collapse.open .macro-collapse-arrow{transform:rotate(180deg);}
+
 /* ── PLANIFICADOR GUIADO ── */
 .plan-wizard{background:var(--bg3);border:1px solid var(--accent);border-radius:var(--r);padding:18px 20px;margin-bottom:20px;}
 .plan-wizard-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
@@ -2355,153 +2380,239 @@ document.addEventListener('click',function(e){
 
 // ─── PROGRAMA RESUMEN ──────────────────────────────────────────────────────────
 function renderProgramaResumen(){
-  const c=DB.clients.find(x=>x.id===cid);if(!c)return;
-  const el=document.getElementById('programa-resumen');if(!el)return;
-  const recov=getRecov(c);
-  const forceVol=recov>=8?'12–16':recov>=6?'10–14':'8–12';
+  var c=DB.clients.find(function(x){return x.id===cid;});if(!c)return;
+  var el=document.getElementById('programa-resumen');if(!el)return;
+  var recov=getRecov(c);
+  var forceVol=recov>=8?'12-16':recov>=6?'10-14':'8-12';
+  var data=getEditorData()||c;
+  var weekBlocks=data.weekBlocks||c.weekBlocks||[];
+  var sessions=data.sessions||c.sessions||[];
 
-  // Usar datos del contexto del editor (mesociclo activo o cliente base)
-  const data=getEditorData()||c;
-  const weekBlocks=data.weekBlocks||c.weekBlocks||[];
-  const sessions=data.sessions||c.sessions||[];
-
-  // ── Microciclo semanal (clickable para ver detalle) ──
-  const DAYS=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-  const typeMap={fuerza:'pt-fuerza',cardio:'pt-cardio',combo:'pt-combo',hiit:'pt-hiit',descanso:'pt-descanso',activo:'pt-activo'};
-  const weekHtml=DAYS.map((day,di)=>{
-    const dayData=weekBlocks[di]||{blocks:[]};
-    const blocks=dayData.blocks||[];
-    const hasNote=data.dayNotes&&data.dayNotes[di];
-    if(!blocks.length) return`<div class="prog-day pt-descanso" style="cursor:pointer" onclick="openDayDetail(${di})"><div class="prog-day-head">${day}</div><div class="prog-day-body"><div class="prog-day-detail">Descanso</div>${hasNote?'<div style="font-size:9px;margin-top:4px;opacity:.7">📝</div>':''}</div></div>`;
-    return blocks.map(b=>`
-      <div class="prog-day ${typeMap[b.type]||'pt-descanso'}" style="cursor:pointer" onclick="openDayDetail(${di})">
-        <div class="prog-day-head">${day}</div>
-        <div class="prog-day-body">
-          <div class="prog-day-label">${b.label}</div>
-          <div class="prog-day-detail">${b.detail||''}</div>
-          ${hasNote?'<div style="font-size:9px;margin-top:4px;opacity:.7">📝</div>':''}
-        </div>
-      </div>`).join('');
-  }).join('');
-
-  // ── Variables aplicadas ──
-  const sepLabel={misma:'Misma sesión · Fuerza primero','6h':'Días separados · Fuerza primero','24h':'Días distintos'}[c.separacion]||'—';
-  const hiitLabel={no:'No incluido',fase2:'Desde fase 2',si:'Desde inicio'}[c.hiit]||'—';
-  const varsHtml=`
-    <div class="var-card"><div class="var-label">Volumen fuerza</div><div class="var-value">${forceVol} series/grupo/sem</div></div>
-    <div class="var-card"><div class="var-label">Capacidad de recuperación</div><div class="var-value">${recov}/10</div></div>
-    <div class="var-card"><div class="var-label">Orden sesión combinada</div><div class="var-value">${sepLabel}</div></div>
-    <div class="var-card"><div class="var-label">HIIT</div><div class="var-value">${hiitLabel}</div></div>
-  `;
-
-  // ── Series efectivas por grupo muscular ──
-  const GRUPOS={
-    'Cuádriceps':['dom_rodilla'],
-    'Isquiotibiales / Glúteo':['dom_cadera'],
-    'Pectoral':['empuje_h'],
-    'Hombro / Deltoides':['empuje_v'],
-    'Dorsal / Espalda':['traccion_h','traccion_v'],
-    'Core':['core'],
-  };
-  const REC_MIN=10,REC_MAX=20;
-
-  // Contar series por patrón desde las sesiones
-  const seriesPorPatron={};
-  sessions.forEach(s=>{
-    (s.exercises||[]).forEach(ex=>{
-      if(!ex.patron)return;
-      const n=parseInt(ex.series)||0;
-      seriesPorPatron[ex.patron]=(seriesPorPatron[ex.patron]||0)+n;
-    });
-  });
-
-  const seriesHtml=Object.entries(GRUPOS).map(([grupo,patrones])=>{
-    const total=patrones.reduce((a,p)=>a+(seriesPorPatron[p]||0),0);
-    const pct=Math.min(100,Math.round(total/REC_MAX*100));
-    const color=total===0?'var(--text3)':total<REC_MIN?'var(--coral)':total<=REC_MAX?'var(--teal)':'var(--amber)';
-    const nota=total===0?'Sin datos':total<REC_MIN?'Bajo rango':'Dentro del rango recomendado';
-    return`<div class="series-card">
-      <div class="series-grupo">${grupo}</div>
-      <div class="series-num" style="color:${color}">${total||'—'}<span style="font-size:12px;font-weight:400;color:var(--text3)"> series</span></div>
-      <div class="series-bar-wrap"><div class="series-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">${nota}</div>
-    </div>`;
-  }).join('');
-
-  const noSessions=sessions.length===0||sessions.every(s=>!s.exercises||!s.exercises.some(e=>e.patron));
-  const seriesBlock=noSessions
-    ?'<div style="font-size:12px;color:var(--text3);padding:10px 0">Carga ejercicios en el Editor para ver el contador de series efectivas por grupo muscular.</div>'
-    :`<div class="series-grid">${seriesHtml}</div><div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:16px">Rango recomendado: 10–20 series/grupo/semana. Series calculadas desde los ejercicios cargados en el Editor.</div>`;
-
-  // ── Tabla mesociclo activo o del cliente con carga progresiva ──
-  let mesoRows=[];
-  let mesoTitle='';
-  let mesoProgHtml='';
+  // ── BLOQUE 1: Estado actual ──
+  var statusHtml='';
+  var today=new Date();today.setHours(0,0,0,0);
+  var macroActual=null,mesoActual=null,mesoIdx=-1,macroIdx=-1;
 
   if(c.macros&&c.macros.length){
-    const lastMacro=c.macros[c.macros.length-1];
-    mesoTitle=lastMacro.name+' · '+lastMacro.dur+' semanas';
-    if(lastMacro.mesos&&lastMacro.mesos.length){
-      mesoRows=lastMacro.mesos.map(m=>({
-        sem:m.start?m.start+' ('+m.weeks+'sem)':m.weeks+' sem',
-        fase:m.fase,
-        obj:m.obj||'—',
-        weeks:parseInt(m.weeks)||4,
-      }));
-      // Carga progresiva: calcula intensidad relativa por fase
-      const faseIntensity={Adaptación:35,Acumulación:55,Intensificación:75,Peak:90,Descarga:25};
-      const faseColor={Adaptación:'var(--teal)',Acumulación:'var(--blue)',Intensificación:'var(--purple)',Peak:'var(--coral)',Descarga:'var(--amber)'};
-      const maxInt=Math.max(...mesoRows.map(r=>faseIntensity[r.fase]||50));
-      mesoProgHtml=`<div class="meso-prog-wrap">`+mesoRows.map(r=>{
-        const pct=Math.round((faseIntensity[r.fase]||50)/maxInt*100);
-        const col=faseColor[r.fase]||'var(--text3)';
-        return`<div class="meso-prog-row">
-          <div class="meso-prog-name" title="${r.fase}">${r.fase}</div>
-          <div class="meso-prog-track"><div class="meso-prog-fill" style="width:${pct}%;background:${col}"></div></div>
-          <div class="meso-prog-info">${r.weeks} sem · ${faseIntensity[r.fase]||50}% carga</div>
-        </div>`;
-      }).join('')+`</div><div style="font-size:10px;color:var(--text3);margin-top:6px">Progresión de intensidad relativa estimada por fase. Ajustar según respuesta del cliente.</div>`;
+    // Find active macro (last one)
+    macroActual=c.macros[c.macros.length-1];
+    macroIdx=c.macros.length-1;
+    // Find active meso
+    if(macroActual.mesos){
+      macroActual.mesos.forEach(function(m,i){
+        if(!m.start)return;
+        var ms=new Date(m.start);ms.setHours(0,0,0,0);
+        var me=new Date(ms);me.setDate(me.getDate()+parseInt(m.weeks||4)*7);
+        if(today>=ms&&today<me){mesoActual=m;mesoIdx=i;}
+      });
+      // If none active, take first upcoming
+      if(!mesoActual){
+        macroActual.mesos.forEach(function(m,i){
+          if(!m.start||mesoActual)return;
+          var ms=new Date(m.start);ms.setHours(0,0,0,0);
+          if(today<ms){mesoActual=m;mesoIdx=i;}
+        });
+      }
     }
   }
 
-  const mesoHtml=mesoRows.length?`
-    <div style="overflow-x:auto">
-      <table class="meso-tbl">
-        <thead><tr><th>Período</th><th>Fase</th><th>Descripción</th></tr></thead>
-        <tbody>${mesoRows.map(r=>`<tr>
-          <td>${r.sem}</td>
-          <td><span class="fase-tag ft-${r.fase}">${r.fase}</span></td>
-          <td style="font-size:11px;max-width:360px;white-space:normal">${r.obj}</td>
-        </tr>`).join('')}</tbody>
-      </table>
-    </div>`
-    :'<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin mesociclos planificados. Ve a la pestaña Planificación para crear el macrociclo.</div>';
+  if(macroActual){
+    var macroEndDate=macroActual.start?addWeeks(macroActual.start,parseInt(macroActual.dur||12)):null;
+    var macroPct=0;
+    if(macroActual.start&&macroEndDate){
+      var ms=new Date(macroActual.start);ms.setHours(0,0,0,0);
+      var me=new Date(macroEndDate);me.setHours(0,0,0,0);
+      if(today>=ms&&today<=me) macroPct=Math.min(100,Math.round((today-ms)/(me-ms)*100));
+      else if(today>me) macroPct=100;
+    }
+    var mesoPct=0,mesoSemActual='',mesoSemTotal='';
+    if(mesoActual&&mesoActual.start){
+      var mstart=new Date(mesoActual.start);mstart.setHours(0,0,0,0);
+      var mend=new Date(mstart);mend.setDate(mend.getDate()+parseInt(mesoActual.weeks||4)*7);
+      if(today>=mstart) mesoPct=Math.min(100,Math.round((today-mstart)/(mend-mstart)*100));
+      var semsTransc=Math.floor((today-mstart)/(7*24*3600*1000));
+      mesoSemActual='Sem. '+(semsTransc+1);
+      mesoSemTotal=' de '+mesoActual.weeks;
+    }
+    // Microciclo: count sessions this week
+    var numSessions=weekBlocks.filter(function(d){return d.blocks&&d.blocks.some(function(b){return b.type==='fuerza'||b.type==='combo';});}).length;
 
-  el.innerHTML=`
-    <div class="sep">Microciclo semanal <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">· Hacé clic en un día para ver el detalle y añadir notas</span></div>
-    <div class="prog-week-grid">${weekHtml}</div>
+    statusHtml='<div class="prog-status-block">'
+      +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Situacion actual</div>'
+      +'<div class="prog-status-row">'
 
-    <div class="sep">Variables de programación aplicadas</div>
-    <div class="vars-grid">${varsHtml}</div>
+      +'<div class="prog-status-item is-macro">'
+      +'<div class="prog-status-label">Macrociclo</div>'
+      +'<div class="prog-status-val">'+macroActual.name+'</div>'
+      +'<div class="prog-status-sub">'+(macroActual.start?fmtDate(macroActual.start)+' · ':'')+macroActual.dur+' semanas</div>'
+      +(macroPct>0?'<div class="prog-status-bar"><div class="prog-status-bar-fill" style="width:'+macroPct+'%;background:var(--accent)"></div></div>':'')
+      +'<div style="font-size:10px;color:var(--text3);margin-top:4px">'+macroPct+'% completado</div>'
+      +'</div>'
 
-    <div class="sep">Series efectivas por grupo muscular</div>
-    ${seriesBlock}
+      +(mesoActual
+        ?'<div class="prog-status-item is-meso">'
+        +'<div class="prog-status-label">Mesociclo</div>'
+        +'<div class="prog-status-val">'+mesoActual.name+'</div>'
+        +'<div class="prog-status-sub"><span class="ph-pill '+( {Adaptación:'ph-acum',Acumulación:'ph-acum',Intensificación:'ph-int',Peak:'ph-peak',Descarga:'ph-deload'}[mesoActual.fase]||'ph-acum' )+'" style="font-size:10px;padding:1px 7px">'+mesoActual.fase+'</span></div>'
+        +(mesoPct>0?'<div class="prog-status-bar"><div class="prog-status-bar-fill" style="width:'+mesoPct+'%;background:var(--purple)"></div></div>':'')
+        +'<div style="font-size:10px;color:var(--text3);margin-top:4px">'+mesoSemActual+mesoSemTotal+' &nbsp;·&nbsp; '+mesoPct+'%</div>'
+        +'</div>'
+        :'<div class="prog-status-item is-meso"><div class="prog-status-label">Mesociclo</div><div class="prog-status-val" style="color:var(--text3)">Sin mesociclo activo</div></div>'
+      )
 
-    <div class="sep">${mesoTitle||'Mesociclos planificados'}</div>
-    ${mesoHtml}
+      +'<div class="prog-status-item is-micro">'
+      +'<div class="prog-status-label">Microciclo semanal</div>'
+      +'<div class="prog-status-val">'+numSessions+' sesiones de fuerza</div>'
+      +'<div class="prog-status-sub">'+(c.dias||'?')+' dias · '+(c.duracion||60)+' min/sesion</div>'
+      +'</div>'
 
-    ${mesoProgHtml?`<div class="sep" style="margin-top:16px">Carga progresiva por fase</div>${mesoProgHtml}`:''}
+      +'</div>'
+      +(macroActual.obj?'<div style="font-size:12px;color:var(--text2);line-height:1.6;padding:8px 10px;background:var(--surface);border-radius:var(--rs);border-left:3px solid var(--accent)">'+macroActual.obj+'</div>':'')
+      +'</div>';
+  } else {
+    statusHtml='<div class="prog-status-block" style="border-color:var(--border)">'
+      +'<div style="font-size:12px;color:var(--text3)">Sin planificacion activa. Ve a la pestana Planificacion para crear el primer macrociclo.</div>'
+      +'</div>';
+  }
 
-    <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-s btn-sm" onclick="document.querySelectorAll('.tab')[3].click()">Ir al editor</button>
-      <button class="btn btn-s btn-sm" onclick="document.querySelectorAll('.tab')[2].click();renderTimeline()">Ver planificación completa</button>
-      <button class="btn btn-p btn-sm" onclick="printPrograma()">🖨 Exportar / Imprimir</button>
-    </div>
-  `;
+  // ── BLOQUE 2: Microciclo semanal ──
+  var DAYS=['Lun','Mar','Mie','Jue','Vie','Sab','Dom'];
+  var typeMap={fuerza:'pt-fuerza',cardio:'pt-cardio',combo:'pt-combo',hiit:'pt-hiit',descanso:'pt-descanso',activo:'pt-activo'};
+  var weekHtml=DAYS.map(function(day,di){
+    var dayData=weekBlocks[di]||{blocks:[]};
+    var blocks=dayData.blocks||[];
+    var hasNote=data.dayNotes&&data.dayNotes[di];
+    if(!blocks.length) return '<div class="prog-day pt-descanso" style="cursor:pointer" onclick="openDayDetail('+di+')">'
+      +'<div class="prog-day-head">'+day+'</div>'
+      +'<div class="prog-day-body"><div class="prog-day-detail">Descanso</div>'+(hasNote?'<div style="font-size:9px;margin-top:4px;opacity:.7">📝</div>':'')+'</div></div>';
+    return blocks.map(function(b){
+      return '<div class="prog-day '+(typeMap[b.type]||'pt-descanso')+'" style="cursor:pointer" onclick="openDayDetail('+di+')">'
+        +'<div class="prog-day-head">'+day+'</div>'
+        +'<div class="prog-day-body">'
+        +'<div class="prog-day-label">'+b.label+'</div>'
+        +'<div class="prog-day-detail">'+(b.detail||'')+'</div>'
+        +(hasNote?'<div style="font-size:9px;margin-top:4px;opacity:.7">📝</div>':'')
+        +'</div></div>';
+    }).join('');
+  }).join('');
+
+  // ── BLOQUE 3: Variables aplicadas ──
+  var sepLabel=({misma:'Misma sesion · Fuerza primero','6h':'Dias separados · Fuerza primero','24h':'Dias distintos'})[c.separacion]||'—';
+  var hiitLabel=({no:'No incluido',fase2:'Desde fase 2',si:'Desde inicio'})[c.hiit]||'—';
+  var varsHtml=''
+    +'<div class="var-card"><div class="var-label">Volumen fuerza</div><div class="var-value">'+forceVol+' series/grupo/sem</div></div>'
+    +'<div class="var-card"><div class="var-label">Recuperacion</div><div class="var-value">'+recov+'/10</div></div>'
+    +'<div class="var-card"><div class="var-label">Orden sesion combinada</div><div class="var-value">'+sepLabel+'</div></div>'
+    +'<div class="var-card"><div class="var-label">HIIT</div><div class="var-value">'+hiitLabel+'</div></div>';
+
+  // ── BLOQUE 4: Series efectivas ──
+  var GRUPOS={'Cuadriceps':['dom_rodilla'],'Isquios / Gluteo':['dom_cadera'],'Pectoral':['empuje_h'],'Hombro':['empuje_v'],'Dorsal':['traccion_h','traccion_v'],'Core':['core']};
+  var seriesPorPatron={};
+  sessions.forEach(function(s){
+    (s.exercises||[]).forEach(function(ex){
+      if(!ex.patron)return;
+      var n=parseInt(ex.series)||0;
+      seriesPorPatron[ex.patron]=(seriesPorPatron[ex.patron]||0)+n;
+    });
+  });
+  var seriesHtml=Object.keys(GRUPOS).map(function(grupo){
+    var patrones=GRUPOS[grupo];
+    var total=patrones.reduce(function(a,p){return a+(seriesPorPatron[p]||0);},0);
+    var pct=Math.min(100,Math.round(total/20*100));
+    var color=total===0?'var(--text3)':total<10?'var(--coral)':total<=20?'var(--teal)':'var(--amber)';
+    var nota=total===0?'Sin datos':total<10?'Bajo rango':'Dentro del rango';
+    return '<div class="series-card">'
+      +'<div class="series-grupo">'+grupo+'</div>'
+      +'<div class="series-num" style="color:'+color+'">'+(total||'—')+'<span style="font-size:12px;font-weight:400;color:var(--text3)"> series</span></div>'
+      +'<div class="series-bar-wrap"><div class="series-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:4px">'+nota+'</div>'
+      +'</div>';
+  }).join('');
+  var noSessions=sessions.length===0||sessions.every(function(s){return!s.exercises||!s.exercises.some(function(e){return e.patron;});});
+  var seriesBlock=noSessions
+    ?'<div style="font-size:12px;color:var(--text3);padding:10px 0">Carga ejercicios en el Editor para ver el contador de series por grupo muscular.</div>'
+    :'<div class="series-grid">'+seriesHtml+'</div><div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:16px">Rango recomendado: 10-20 series/grupo/semana.</div>';
+
+  // ── BLOQUE 5: Macrociclos desplegables (más reciente primero) ──
+  var macrosHtml='';
+  if(c.macros&&c.macros.length){
+    var macrosCopy=c.macros.slice().reverse(); // más reciente primero
+    macrosHtml=macrosCopy.map(function(macro,idx){
+      var realIdx=c.macros.length-1-idx;
+      var isCurrent=realIdx===c.macros.length-1;
+      var faseColor={Adaptación:'var(--teal)',Acumulación:'var(--blue)',Intensificación:'var(--purple)',Peak:'var(--coral)',Descarga:'var(--amber)'};
+      var faseIntensity={Adaptación:35,Acumulación:55,Intensificación:75,Peak:90,Descarga:25};
+      var mesoRows='';
+      var progBars='';
+      if(macro.mesos&&macro.mesos.length){
+        mesoRows='<div style="overflow-x:auto"><table class="meso-tbl"><thead><tr><th>Periodo</th><th>Fase</th><th>Descripcion</th></tr></thead><tbody>';
+        macro.mesos.forEach(function(m){
+          mesoRows+='<tr><td>'+(m.start?fmtDate(m.start)+' ('+m.weeks+'sem)':m.weeks+' sem')+'</td>'
+            +'<td><span class="ph-pill '+({Adaptación:'ph-acum',Acumulación:'ph-acum',Intensificación:'ph-int',Peak:'ph-peak',Descarga:'ph-deload'}[m.fase]||'ph-acum')+'">'+m.fase+'</span></td>'
+            +'<td style="font-size:11px;max-width:320px;white-space:normal">'+(m.obj||'—')+'</td></tr>';
+        });
+        mesoRows+='</tbody></table></div>';
+
+        var maxInt=Math.max.apply(null,macro.mesos.map(function(m){return faseIntensity[m.fase]||50;}));
+        progBars='<div class="meso-prog-wrap" style="margin-top:12px">'+macro.mesos.map(function(m){
+          var pct=Math.round((faseIntensity[m.fase]||50)/maxInt*100);
+          var col=faseColor[m.fase]||'var(--text3)';
+          return '<div class="meso-prog-row">'
+            +'<div class="meso-prog-name">'+m.fase+'</div>'
+            +'<div class="meso-prog-track"><div class="meso-prog-fill" style="width:'+pct+'%;background:'+col+'"></div></div>'
+            +'<div class="meso-prog-info">'+(m.weeks)+' sem · '+(faseIntensity[m.fase]||50)+'% carga</div>'
+            +'</div>';
+        }).join('')+'</div>';
+      } else {
+        mesoRows='<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin mesociclos planificados.</div>';
+      }
+
+      return '<div class="macro-collapse'+(isCurrent?' is-current open':'')+'" id="macro-col-'+realIdx+'">'
+        +'<div class="macro-collapse-head" onclick="toggleMacroCollapse('+realIdx+')">'
+        +'<div>'
+        +'<div class="macro-collapse-title'+(isCurrent?' is-current':'')+'">'+(isCurrent?'● ':'')+macro.name+'</div>'
+        +'<div class="macro-collapse-meta">'+(macro.start?fmtDate(macro.start)+' · ':'')+macro.dur+' semanas'+(isCurrent?' · Activo':'')+'</div>'
+        +'</div>'
+        +'<span class="macro-collapse-arrow">▼</span>'
+        +'</div>'
+        +'<div class="macro-collapse-body">'
+        +(macro.obj?'<div style="font-size:12px;color:var(--text2);margin-bottom:12px;padding:8px 10px;background:var(--surface);border-radius:var(--rs);border-left:3px solid var(--border2)">'+macro.obj+'</div>':'')
+        +mesoRows+progBars
+        +'</div>'
+        +'</div>';
+    }).join('');
+  } else {
+    macrosHtml='<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin macrociclos planificados.</div>';
+  }
+
+  el.innerHTML=
+    statusHtml
+
+    +'<div class="sep">Microciclo semanal <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">· Clic en un dia para ver detalle</span></div>'
+    +'<div class="prog-week-grid">'+weekHtml+'</div>'
+
+    +'<div class="sep">Variables de programacion aplicadas</div>'
+    +'<div class="vars-grid">'+varsHtml+'</div>'
+
+    +'<div class="sep">Series efectivas por grupo muscular</div>'
+    +seriesBlock
+
+    +'<div class="sep">Macrociclos</div>'
+    +macrosHtml
+
+    +'<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap">'
+    +'<button class="btn btn-s btn-sm" onclick="document.querySelectorAll(\'.tab\')[3].click()">Ir al editor</button>'
+    +'<button class="btn btn-s btn-sm" onclick="document.querySelectorAll(\'.tab\')[2].click();renderTimeline()">Ver planificacion completa</button>'
+    +'<button class="btn btn-p btn-sm" onclick="printPrograma()">Exportar / Imprimir</button>'
+    +'</div>';
 }
 
-// ─── DAY DETAIL MODAL ──────────────────────────────────────────────────────────
-let currentDayIdx=null;
+function toggleMacroCollapse(idx){
+  var el=document.getElementById('macro-col-'+idx);
+  if(el)el.classList.toggle('open');
+}
+
+
 function openDayDetail(di){
   const c=DB.clients.find(x=>x.id===cid);if(!c)return;
   const data=getEditorData()||c;
