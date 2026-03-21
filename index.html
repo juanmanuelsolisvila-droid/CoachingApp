@@ -293,6 +293,29 @@ textarea.fi{resize:vertical;min-height:70px;}
 .monitor-list li{padding:4px 0;font-size:12px;color:var(--text2);line-height:1.6;}
 .mob-btn{display:none;position:fixed;top:14px;left:14px;z-index:200;padding:7px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;cursor:pointer;}
 @media(max-width:768px){.mob-btn{display:flex;}}
+/* ── PLANIFICADOR GUIADO ── */
+.plan-wizard{background:var(--bg3);border:1px solid var(--accent);border-radius:var(--r);padding:18px 20px;margin-bottom:20px;}
+.plan-wizard-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.plan-wizard-title{font-family:var(--font-d);font-size:17px;color:var(--accent);}
+.plan-wizard-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.plan-step{display:none;}
+.plan-step.active{display:block;}
+.plan-q{font-size:14px;font-weight:600;color:var(--text);margin-bottom:5px;line-height:1.4;}
+.plan-hint{font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5;}
+.plan-ops{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.plan-op{padding:8px 15px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-size:12px;font-family:var(--font-b);transition:all .15s;}
+.plan-op:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.plan-op.sel{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);font-weight:600;}
+.plan-inp{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:13px;margin-bottom:14px;}
+.plan-inp:focus{outline:none;border-color:var(--accent);}
+.plan-nav{display:flex;gap:8px;align-items:center;}
+.plan-dots{display:flex;gap:4px;margin-left:auto;}
+.plan-dot{width:7px;height:7px;border-radius:50%;background:var(--surface2);}
+.plan-dot.done{background:var(--teal);}
+.plan-dot.cur{background:var(--accent);}
+.plan-summary{background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);padding:14px;font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px;}
+.plan-summary strong{color:var(--accent);}
+
 
 /* ── TIMELINE HORIZONTAL ── */
 .macro-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:20px;}
@@ -830,7 +853,7 @@ textarea.fi{resize:vertical;min-height:70px;}
   <div class="tab-bar">
     <button class="tab active" onclick="showTab(this,'tc-datos')">Datos</button>
     <button class="tab" onclick="showTab(this,'tc-programa');renderProgramaResumen()">Programa</button>
-    <button class="tab" onclick="showTab(this,'tc-timeline');renderTimeline()">Planificación</button>
+    <button class="tab" onclick="showTab(this,'tc-timeline');renderTimeline();planPreFill()">Planificación</button>
     <button class="tab" onclick="showTab(this,'tc-editor');renderEditor()">Editor</button>
     <button class="tab" onclick="showTab(this,'tc-evidencia')">Evidencia</button>
     <button class="tab" onclick="showTab(this,'tc-notas')">Notas</button>
@@ -856,8 +879,132 @@ textarea.fi{resize:vertical;min-height:70px;}
 
   <!-- TAB PLANIFICACIÓN (línea de tiempo) -->
   <div class="tc" id="tc-timeline">
+
+    <!-- PLANIFICADOR GUIADO -->
+    <div class="plan-wizard" id="plan-wizard">
+      <div class="plan-wizard-head">
+        <div>
+          <div class="plan-wizard-title">✦ Planificador guiado</div>
+          <div class="plan-wizard-sub">Respondé las preguntas y genero el macrociclo completo automáticamente</div>
+        </div>
+        <span style="font-size:11px;color:var(--text3);cursor:pointer" onclick="planToggle()" id="plan-toggle-txt">▲ Ocultar</span>
+      </div>
+      <div id="plan-body">
+
+        <!-- PASO 0: objetivo del macrociclo -->
+        <div class="plan-step active" id="plan-s0">
+          <div class="plan-q">¿Cuál es el objetivo de este macrociclo?</div>
+          <div class="plan-hint">Va a definir la distribución de fases y el énfasis del entrenamiento.</div>
+          <div class="plan-ops" id="plan-obj-ops">
+            <button class="plan-op" data-val="recomposicion" onclick="planSel(this,'plan-obj-ops')">Recomposición corporal</button>
+            <button class="plan-op" data-val="hipertrofia" onclick="planSel(this,'plan-obj-ops')">Hipertrofia</button>
+            <button class="plan-op" data-val="fuerza" onclick="planSel(this,'plan-obj-ops')">Fuerza máxima</button>
+            <button class="plan-op" data-val="salud" onclick="planSel(this,'plan-obj-ops')">Salud + pérdida de grasa</button>
+            <button class="plan-op" data-val="aerobico" onclick="planSel(this,'plan-obj-ops')">Rendimiento aeróbico</button>
+            <button class="plan-op" data-val="deporte" onclick="planSel(this,'plan-obj-ops')">Rendimiento deportivo</button>
+          </div>
+          <div class="plan-nav">
+            <button class="btn btn-p btn-sm" onclick="planGo(1)">Siguiente →</button>
+            <div class="plan-dots" id="plan-dots0"></div>
+          </div>
+        </div>
+
+        <!-- PASO 1: duración -->
+        <div class="plan-step" id="plan-s1">
+          <div class="plan-q">¿Cuántas semanas dura este macrociclo?</div>
+          <div class="plan-hint">Lo más común es 8, 12 o 16 semanas. Depende de la fecha objetivo del cliente.</div>
+          <div class="plan-ops" id="plan-dur-ops">
+            <button class="plan-op" data-val="8" onclick="planSel(this,'plan-dur-ops')">8 semanas</button>
+            <button class="plan-op" data-val="12" onclick="planSel(this,'plan-dur-ops')">12 semanas</button>
+            <button class="plan-op" data-val="16" onclick="planSel(this,'plan-dur-ops')">16 semanas</button>
+            <button class="plan-op" data-val="20" onclick="planSel(this,'plan-dur-ops')">20 semanas</button>
+            <button class="plan-op" data-val="24" onclick="planSel(this,'plan-dur-ops')">24 semanas</button>
+          </div>
+          <div class="plan-nav">
+            <button class="btn btn-s btn-sm" onclick="planGo(0)">← Atrás</button>
+            <button class="btn btn-p btn-sm" onclick="planGo(2)">Siguiente →</button>
+            <div class="plan-dots" id="plan-dots1"></div>
+          </div>
+        </div>
+
+        <!-- PASO 2: fecha de inicio -->
+        <div class="plan-step" id="plan-s2">
+          <div class="plan-q">¿Cuándo empieza?</div>
+          <div class="plan-hint">Podés usar hoy o elegir una fecha futura.</div>
+          <div class="plan-ops" id="plan-fecha-ops">
+            <button class="plan-op" data-val="hoy" onclick="planSel(this,'plan-fecha-ops')">Hoy</button>
+            <button class="plan-op" data-val="prox-lunes" onclick="planSel(this,'plan-fecha-ops')">Próximo lunes</button>
+            <button class="plan-op" data-val="custom" onclick="planSel(this,'plan-fecha-ops')">Elegir fecha</button>
+          </div>
+          <input class="plan-inp" type="date" id="plan-fecha-custom" style="display:none;max-width:200px">
+          <div class="plan-nav">
+            <button class="btn btn-s btn-sm" onclick="planGo(1)">← Atrás</button>
+            <button class="btn btn-p btn-sm" onclick="planGo(3)">Siguiente →</button>
+            <div class="plan-dots" id="plan-dots2"></div>
+          </div>
+        </div>
+
+        <!-- PASO 3: días de fuerza -->
+        <div class="plan-step" id="plan-s3">
+          <div class="plan-q">¿Cuántos días de fuerza por semana?</div>
+          <div class="plan-hint">Si el perfil del cliente ya lo tiene, usalo — o cambialo si es diferente para este ciclo.</div>
+          <div class="plan-ops" id="plan-dias-ops">
+            <button class="plan-op" data-val="2" onclick="planSel(this,'plan-dias-ops')">2 días</button>
+            <button class="plan-op" data-val="3" onclick="planSel(this,'plan-dias-ops')">3 días</button>
+            <button class="plan-op" data-val="4" onclick="planSel(this,'plan-dias-ops')">4 días</button>
+            <button class="plan-op" data-val="5" onclick="planSel(this,'plan-dias-ops')">5 días</button>
+            <button class="plan-op" data-val="6" onclick="planSel(this,'plan-dias-ops')">6 días</button>
+          </div>
+          <div class="plan-nav">
+            <button class="btn btn-s btn-sm" onclick="planGo(2)">← Atrás</button>
+            <button class="btn btn-p btn-sm" onclick="planGo(4)">Siguiente →</button>
+            <div class="plan-dots" id="plan-dots3"></div>
+          </div>
+        </div>
+
+        <!-- PASO 4: incluye cardio -->
+        <div class="plan-step" id="plan-s4">
+          <div class="plan-q">¿Incluye cardio estructurado en este ciclo?</div>
+          <div class="plan-hint">Afecta la distribución semanal y el orden de las sesiones.</div>
+          <div class="plan-ops" id="plan-cardio-ops">
+            <button class="plan-op" data-val="si" onclick="planSel(this,'plan-cardio-ops')">Sí</button>
+            <button class="plan-op" data-val="no" onclick="planSel(this,'plan-cardio-ops')">No (alto NEAT / mucho movimiento diario)</button>
+          </div>
+          <div class="plan-nav">
+            <button class="btn btn-s btn-sm" onclick="planGo(3)">← Atrás</button>
+            <button class="btn btn-p btn-sm" onclick="planGo(5)">Siguiente →</button>
+            <div class="plan-dots" id="plan-dots4"></div>
+          </div>
+        </div>
+
+        <!-- PASO 5: nombre y notas -->
+        <div class="plan-step" id="plan-s5">
+          <div class="plan-q">¿Querés agregar un nombre o nota al macrociclo?</div>
+          <div class="plan-hint">Opcional. Si lo dejás vacío uso el objetivo como nombre.</div>
+          <input class="plan-inp" type="text" id="plan-nombre" placeholder="Ej: Ciclo verano · Preparación torneo...">
+          <div class="plan-nav">
+            <button class="btn btn-s btn-sm" onclick="planGo(4)">← Atrás</button>
+            <button class="btn btn-p btn-sm" onclick="planGenerar()">✦ Generar macrociclo</button>
+            <div class="plan-dots" id="plan-dots5"></div>
+          </div>
+        </div>
+
+        <!-- PASO 6: resultado -->
+        <div class="plan-step" id="plan-s6">
+          <div class="plan-q">✅ Macrociclo generado</div>
+          <div class="plan-summary" id="plan-summary"></div>
+          <div class="plan-nav">
+            <button class="btn btn-p btn-sm" onclick="planAplicar()">✦ Aplicar a la planificación</button>
+            <button class="btn btn-s btn-sm" onclick="planReset()">↺ Empezar de nuevo</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- FIN PLANIFICADOR -->
+
     <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
-      <button class="btn btn-p" onclick="openModal('modal-new-macro')">+ Macrociclo</button>
+      <button class="btn btn-p" onclick="openModal('modal-new-macro')">+ Macrociclo manual</button>
       <button class="btn btn-s" id="btn-new-meso" onclick="openModal('modal-new-meso')" style="display:none">+ Mesociclo</button>
     </div>
     <div id="timeline-container"></div>
@@ -2922,6 +3069,272 @@ function eliminarSesionHist(hid) {
   renderHistorial();
 }
 
+
+
+// ─── PLANIFICADOR GUIADO ──────────────────────────────────────────────────────
+var planState={obj:null,dur:null,fecha:null,dias:null,cardio:null,nombre:'',step:0};
+var planResult=null;
+var planVisible=true;
+var PLAN_STEPS=6;
+
+function planToggle(){
+  planVisible=!planVisible;
+  document.getElementById('plan-body').style.display=planVisible?'block':'none';
+  document.getElementById('plan-toggle-txt').textContent=planVisible?'\u25b2 Ocultar':'\u25bc Mostrar';
+}
+
+function planSel(btn,gid){
+  document.querySelectorAll('#'+gid+' .plan-op').forEach(function(b){b.classList.remove('sel');});
+  btn.classList.add('sel');
+  var v=btn.dataset.val;
+  if(gid==='plan-obj-ops')planState.obj=v;
+  else if(gid==='plan-dur-ops')planState.dur=parseInt(v);
+  else if(gid==='plan-fecha-ops'){
+    planState.fecha=v;
+    document.getElementById('plan-fecha-custom').style.display=v==='custom'?'block':'none';
+  }
+  else if(gid==='plan-dias-ops')planState.dias=parseInt(v);
+  else if(gid==='plan-cardio-ops')planState.cardio=v;
+}
+
+function planGo(step){
+  // Validate current step
+  var ok=true;
+  if(planState.step===0&&!planState.obj){alert('Elegí un objetivo primero.');ok=false;}
+  else if(planState.step===1&&!planState.dur){alert('Elegí la duración.');ok=false;}
+  else if(planState.step===2&&!planState.fecha){alert('Elegí la fecha de inicio.');ok=false;}
+  else if(planState.step===3&&!planState.dias){alert('Elegí los días de fuerza.');ok=false;}
+  else if(planState.step===4&&!planState.cardio){alert('Elegí si incluye cardio.');ok=false;}
+  if(!ok)return;
+
+  document.querySelectorAll('.plan-step').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('plan-s'+step).classList.add('active');
+  planState.step=step;
+  planRenderDots();
+}
+
+function planRenderDots(){
+  for(var i=0;i<PLAN_STEPS;i++){
+    var el=document.getElementById('plan-dots'+i);
+    if(!el)continue;
+    var html='';
+    for(var j=0;j<PLAN_STEPS;j++){
+      var cls=j<planState.step?'done':j===planState.step?'cur':'';
+      html+='<div class="plan-dot '+cls+'"></div>';
+    }
+    el.innerHTML=html;
+  }
+}
+
+function planGetFecha(){
+  if(planState.fecha==='hoy'){
+    return new Date().toISOString().split('T')[0];
+  } else if(planState.fecha==='prox-lunes'){
+    var d=new Date();
+    var day=d.getDay();
+    var diff=day===0?1:8-day;
+    d.setDate(d.getDate()+diff);
+    return d.toISOString().split('T')[0];
+  } else {
+    return document.getElementById('plan-fecha-custom').value||new Date().toISOString().split('T')[0];
+  }
+}
+
+function planGenerar(){
+  if(!planState.obj||!planState.dur||!planState.fecha||!planState.dias||!planState.cardio){
+    alert('Completá todos los pasos antes de generar.');return;
+  }
+  var c=DB.clients.find(function(x){return x.id===cid;});if(!c)return;
+
+  var objNames={recomposicion:'Recomposición corporal',hipertrofia:'Hipertrofia',fuerza:'Fuerza máxima',salud:'Salud y pérdida de grasa',aerobico:'Rendimiento aeróbico',deporte:'Rendimiento deportivo'};
+  var recov=getRecov(c);
+  var fechaInicio=planGetFecha();
+  var cardioMod={ciclismo:'Ciclismo',carrera:'Carrera',remo:'Remo',natacion:'Natación',mixto:'Cardio',eliptica:'Elíptica',caminata:'Caminata'}[c.cardio]||'Cardio';
+  var nombreMacro=document.getElementById('plan-nombre').value.trim()||(objNames[planState.obj]||planState.obj);
+  var dias=planState.dias;
+  var dur=planState.dur;
+  var conCardio=planState.cardio==='si';
+
+  // Construir mesociclos según duración y objetivo
+  var mesos=planBuildMesos(dur,planState.obj,conCardio,cardioMod,recov,fechaInicio);
+
+  // Construir semana tipo
+  var wb=planBuildWeek(dias,dur,conCardio,cardioMod,c);
+
+  planResult={
+    nombre:nombreMacro,
+    start:fechaInicio,
+    dur:dur.toString(),
+    obj:objNames[planState.obj]+' · '+dias+' días fuerza/sem · Recuperación: '+recov+'/10',
+    mesos:mesos,
+    weekBlocks:wb
+  };
+
+  // Mostrar resumen
+  var html='<strong>Macrociclo:</strong> '+nombreMacro+'<br>';
+  html+='<strong>Duración:</strong> '+dur+' semanas · Inicio: '+fmtDate(fechaInicio)+'<br>';
+  html+='<strong>Días de fuerza:</strong> '+dias+'/sem'+(conCardio?' + cardio':' (sin cardio estructurado)')+'<br>';
+  html+='<strong>Mesociclos generados ('+mesos.length+'):</strong><br>';
+  mesos.forEach(function(m){
+    html+='&nbsp;&nbsp;→ <strong>'+m.name+'</strong> · '+m.weeks+' sem · '+fmtDate(m.start)+'<br>';
+    html+='&nbsp;&nbsp;&nbsp;&nbsp;<span style="opacity:.75">'+m.obj.substring(0,80)+(m.obj.length>80?'...':'')+'</span><br>';
+  });
+  document.getElementById('plan-summary').innerHTML=html;
+
+  document.querySelectorAll('.plan-step').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('plan-s6').classList.add('active');
+  planState.step=6;
+}
+
+function planBuildMesos(totalWeeks,obj,conCardio,cardioMod,recov,fechaInicio){
+  var mesos=[];
+  var cardioDesc=conCardio?cardioMod+' zona 2':'Sin cardio estructurado';
+  var rir=recov>=8?'RIR 2':recov>=5?'RIR 3':'RIR 4';
+
+  var templates={
+    8:[
+      {name:'Mes. 1 — Adaptación',weeks:3,fase:'Adaptación',obj:'Fuerza: 2-3x12-15 rep · RIR 4-5. '+cardioDesc+' 20-25 min. Base técnica.'},
+      {name:'Mes. 2 — Acumulación',weeks:3,fase:'Acumulación',obj:'Fuerza: 3x8-12 rep · '+rir+'. '+cardioDesc+' 25-35 min. Progresar carga.'},
+      {name:'Mes. 3 — Intensificación',weeks:2,fase:'Intensificación',obj:'Fuerza: 3-4x6-10 rep · RIR 1-2. '+cardioDesc+' 30 min. Cargas máximas.'},
+      {name:'Descarga',weeks:1,fase:'Descarga',obj:'Reducir 40-50% volumen. Fuerza: 2x10 rep · RIR 5. Supercompensación.'}
+    ],
+    12:[
+      {name:'Mes. 1 — Adaptación',weeks:3,fase:'Adaptación',obj:'Fuerza: 2-3x12-15 · RIR 4-5. '+cardioDesc+' 20-30 min. Base técnica y aeróbica.'},
+      {name:'Mes. 2 — Acumulación',weeks:3,fase:'Acumulación',obj:'Fuerza: 3x8-12 · '+rir+'. '+cardioDesc+' 25-35 min. Progresión lineal.'},
+      {name:'Mes. 3 — Intensificación',weeks:3,fase:'Intensificación',obj:'Fuerza: 3-4x6-10 · RIR 1-2. '+cardioDesc+' 30-35 min. Cargas altas.'},
+      {name:'Mes. 4 — Peak',weeks:2,fase:'Peak',obj:'Fuerza: 4x4-8 · RIR 0-1. '+cardioDesc+' 20-25 min. Expresión de fuerza.'},
+      {name:'Descarga',weeks:1,fase:'Descarga',obj:'Reducir 40-50% volumen. Supercompensación. Re-evaluar.'}
+    ],
+    16:[
+      {name:'Mes. 1 — Adaptación anatómica',weeks:3,fase:'Adaptación',obj:'Fuerza: 2x15 · RIR 5. '+cardioDesc+' 20 min. Patrones motores.'},
+      {name:'Mes. 2 — Acumulación 1',weeks:3,fase:'Acumulación',obj:'Fuerza: 3x12 · RIR 3-4. '+cardioDesc+' 25-30 min. Primera progresión.'},
+      {name:'Mes. 3 — Acumulación 2',weeks:3,fase:'Acumulación',obj:'Fuerza: 3x10 · RIR 2-3. '+cardioDesc+' 30-35 min. Aumentar volumen.'},
+      {name:'Mes. 4 — Intensificación',weeks:3,fase:'Intensificación',obj:'Fuerza: 3-4x6-8 · RIR 1-2. Cargas máximas del bloque.'},
+      {name:'Mes. 5 — Peak',weeks:3,fase:'Peak',obj:'Fuerza: 4x4-6 · RIR 0-1. Cardio mínimo de mantenimiento.'},
+      {name:'Descarga',weeks:1,fase:'Descarga',obj:'Reducir 40-50% volumen. Re-evaluar y planificar siguiente ciclo.'}
+    ]
+  };
+
+  // Para 20 y 24 semanas, extender el de 16
+  var base=templates[totalWeeks]||templates[16];
+  if(totalWeeks===20){
+    base=JSON.parse(JSON.stringify(templates[16]));
+    base.splice(3,0,{name:'Mes. 3b — Acumulación 3',weeks:4,fase:'Acumulación',obj:'Fuerza: 3x8-10 · RIR 2. Consolidar volumen semanal.'});
+    base[base.length-1].weeks=1;
+  } else if(totalWeeks===24){
+    base=JSON.parse(JSON.stringify(templates[16]));
+    base[1].weeks=4;base[2].weeks=4;base[3].weeks=4;base[4].weeks=4;base[5].weeks=4;
+    base.push({name:'Descarga final',weeks:4,fase:'Descarga',obj:'Supercompensación y transición al siguiente macrociclo.'});
+  }
+
+  var cursor=new Date(fechaInicio);
+  base.forEach(function(m){
+    var startStr=cursor.toISOString().split('T')[0];
+    mesos.push({id:uid(),name:m.name,start:startStr,weeks:m.weeks.toString(),fase:m.fase,obj:m.obj,weekBlocks:defaultWeek(),sessions:[]});
+    cursor.setDate(cursor.getDate()+m.weeks*7);
+  });
+  return mesos;
+}
+
+function planBuildWeek(dias,dur,conCardio,cardioMod,c){
+  var durSes=parseInt(c.duracion)||60;
+  var wb=defaultWeek();
+  var cmin=dur<=8?'20-25':dur<=12?'25-35':'30-40';
+  var cardioLabel=cardioMod+' zona 2';
+
+  if(dias<=2){
+    wb[0].blocks=[{id:uid(),type:'fuerza',label:'Fuerza A',detail:'Cuerpo completo · '+durSes+' min'}];
+    wb[3].blocks=[{id:uid(),type:'fuerza',label:'Fuerza B',detail:'Cuerpo completo · '+durSes+' min'}];
+    if(conCardio){wb[1].blocks=[{id:uid(),type:'cardio',label:cardioLabel,detail:cmin+' min'}];wb[5].blocks=[{id:uid(),type:'cardio',label:cardioLabel,detail:cmin+' min'}];}
+  } else if(dias===3){
+    wb[0].blocks=[{id:uid(),type:'fuerza',label:'Fuerza A',detail:'Cuerpo completo · '+durSes+' min'}];
+    wb[2].blocks=[{id:uid(),type:'fuerza',label:'Fuerza B',detail:'Cuerpo completo · '+durSes+' min'}];
+    wb[4].blocks=[{id:uid(),type:'fuerza',label:'Fuerza C',detail:'Cuerpo completo · '+durSes+' min'}];
+    if(conCardio){wb[1].blocks=[{id:uid(),type:'cardio',label:cardioLabel,detail:cmin+' min'}];wb[5].blocks=[{id:uid(),type:'cardio',label:cardioLabel,detail:cmin+' min'}];}
+  } else if(dias===4){
+    wb[0].blocks=[{id:uid(),type:'fuerza',label:'Tren inferior A',detail:'Cuád./glúteo · '+durSes+' min'}];
+    wb[1].blocks=[{id:uid(),type:'fuerza',label:'Tren superior A',detail:'Empuje · '+durSes+' min'}];
+    wb[3].blocks=[{id:uid(),type:'fuerza',label:'Tren inferior B',detail:'Post./isquios · '+durSes+' min'}];
+    wb[4].blocks=[{id:uid(),type:'fuerza',label:'Tren superior B',detail:'Tracción · '+durSes+' min'}];
+    if(conCardio){wb[2].blocks=[{id:uid(),type:'cardio',label:cardioLabel,detail:cmin+' min'}];wb[5].blocks=[{id:uid(),type:'cardio',label:cardioLabel,detail:cmin+' min'}];}
+  } else if(dias===5){
+    wb[0].blocks=[{id:uid(),type:'fuerza',label:'Tren inferior A',detail:'Cuád./glúteo · '+durSes+' min'}];
+    wb[1].blocks=[{id:uid(),type:'cardio',label:cardioLabel,detail:cmin+' min'}];
+    wb[2].blocks=[{id:uid(),type:'fuerza',label:'Empuje',detail:'Pectoral/hombro · '+durSes+' min'}];
+    wb[3].blocks=[{id:uid(),type:'fuerza',label:'Tracción',detail:'Dorsal/bíceps · '+durSes+' min'}];
+    wb[4].blocks=[{id:uid(),type:'fuerza',label:'Tren inferior B',detail:'Post./isquios · '+durSes+' min'}];
+    if(conCardio)wb[5].blocks=[{id:uid(),type:'cardio',label:cardioLabel,detail:cmin+' min'}];
+  } else {
+    wb[0].blocks=[{id:uid(),type:'fuerza',label:'Tren inferior A',detail:''+durSes+' min'}];
+    wb[1].blocks=[{id:uid(),type:'fuerza',label:'Empuje',detail:''+durSes+' min'}];
+    wb[2].blocks=[{id:uid(),type:'fuerza',label:'Tracción',detail:''+durSes+' min'}];
+    wb[3].blocks=[{id:uid(),type:'cardio',label:cardioLabel,detail:cmin+' min'}];
+    wb[4].blocks=[{id:uid(),type:'fuerza',label:'Tren inferior B',detail:''+durSes+' min'}];
+    wb[5].blocks=[{id:uid(),type:'fuerza',label:'Full body ligero',detail:''+durSes+' min'}];
+  }
+  return wb;
+}
+
+function planAplicar(){
+  if(!planResult)return;
+  var c=DB.clients.find(function(x){return x.id===cid;});if(!c)return;
+  if(!c.macros)c.macros=[];
+
+  // Copy weekBlocks to all mesos
+  planResult.mesos.forEach(function(m){
+    m.weekBlocks=JSON.parse(JSON.stringify(planResult.weekBlocks));
+  });
+
+  c.macros.push({
+    id:uid(),
+    name:planResult.nombre,
+    start:planResult.start,
+    dur:planResult.dur,
+    obj:planResult.obj,
+    mesos:planResult.mesos
+  });
+
+  // Also update client week type
+  c.weekBlocks=JSON.parse(JSON.stringify(planResult.weekBlocks));
+
+  saveDB();
+  renderTimeline();
+  renderSidebarClients();
+
+  // Reset wizard
+  planReset();
+  document.getElementById('plan-summary').innerHTML='<span style="color:var(--teal);font-weight:600">Macrociclo aplicado correctamente. Podés verlo en la planificación.</span>';
+  document.querySelectorAll('.plan-step').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('plan-s6').classList.add('active');
+}
+
+function planReset(){
+  planState={obj:null,dur:null,fecha:null,dias:null,cardio:null,nombre:'',step:0};
+  planResult=null;
+  document.querySelectorAll('.plan-op').forEach(function(b){b.classList.remove('sel');});
+  document.getElementById('plan-nombre').value='';
+  document.getElementById('plan-fecha-custom').style.display='none';
+  planGo(0);
+}
+
+
+function planPreFill(){
+  // Pre-select días and cardio from client profile
+  var c=DB.clients.find(function(x){return x.id===cid;});if(!c)return;
+  if(c.dias){
+    var b=document.querySelector('#plan-dias-ops .plan-op[data-val="'+c.dias+'"]');
+    if(b){b.classList.add('sel');planState.dias=parseInt(c.dias);}
+  }
+  if(c.cardioInc||c.cardio){
+    var cinc=c.cardioInc==='no'?'no':'si';
+    var bc=document.querySelector('#plan-cardio-ops .plan-op[data-val="'+cinc+'"]');
+    if(bc){bc.classList.add('sel');planState.cardio=cinc;}
+  }
+  if(c.objetivo){
+    var bo=document.querySelector('#plan-obj-ops .plan-op[data-val="'+c.objetivo+'"]');
+    if(bo){bo.classList.add('sel');planState.obj=c.objetivo;}
+  }
+}
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 // La inicialización es manejada por window.__initApp (llamada tras cargar Firebase)
