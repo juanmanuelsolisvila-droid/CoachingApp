@@ -614,6 +614,30 @@ textarea.fi{resize:vertical;min-height:70px;}
 </div>
 
 <!-- NEW MACRO MODAL -->
+<!-- MODAL DUPLICAR SESIÓN -->
+<div class="modal-bg" id="modal-dup-session">
+  <div class="modal">
+    <div class="modal-title">Duplicar sesión</div>
+    <div class="p-sub" id="dup-session-name" style="margin-bottom:14px;color:var(--accent);font-weight:600"></div>
+    <div class="fg"><label class="fl">¿A qué día asignamos la copia en el cronograma?</label>
+      <div class="chips" id="dup-day-chips" style="flex-wrap:wrap">
+        <button class="chip" data-val="0" onclick="chip(this,'dup-day-chips','sa')">Lun</button>
+        <button class="chip" data-val="1" onclick="chip(this,'dup-day-chips','sa')">Mar</button>
+        <button class="chip" data-val="2" onclick="chip(this,'dup-day-chips','sa')">Mié</button>
+        <button class="chip" data-val="3" onclick="chip(this,'dup-day-chips','sa')">Jue</button>
+        <button class="chip" data-val="4" onclick="chip(this,'dup-day-chips','sa')">Vie</button>
+        <button class="chip" data-val="5" onclick="chip(this,'dup-day-chips','sa')">Sáb</button>
+        <button class="chip" data-val="6" onclick="chip(this,'dup-day-chips','sa')">Dom</button>
+        <button class="chip sa" data-val="none" onclick="chip(this,'dup-day-chips','sa')">Sin asignar</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-p" onclick="confirmDuplicateSession()">Duplicar</button>
+      <button class="btn btn-s" onclick="closeModal('modal-dup-session')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-new-macro">
   <div class="modal">
     <div class="modal-title">Nuevo macrociclo</div>
@@ -1790,15 +1814,36 @@ function deleteSession(si){
   const data=getEditorData();if(!data)return;
   data.sessions.splice(si,1);saveDB();renderEditor();
 }
+var dupSessIdx=null;
 function duplicateSession(si){
   const data=getEditorData();if(!data)return;
-  const original=data.sessions[si];
+  dupSessIdx=si;
+  const name=data.sessions[si].name||('Sesion '+(si+1));
+  document.getElementById('dup-session-name').textContent=name;
+  document.querySelectorAll('#dup-day-chips .chip').forEach(function(b){b.className='chip';});
+  document.querySelector('#dup-day-chips .chip[data-val="none"]').className='chip sa';
+  openModal('modal-dup-session');
+}
+function confirmDuplicateSession(){
+  const data=getEditorData();if(!data||dupSessIdx===null)return;
+  const original=data.sessions[dupSessIdx];
   const copy=JSON.parse(JSON.stringify(original));
   copy.id=uid();
   copy.name=original.name+' (copia)';
   copy.exercises=(copy.exercises||[]).map(function(ex){return Object.assign({},ex,{id:uid()});});
-  data.sessions.splice(si+1,0,copy);
-  saveDB();renderEditor();
+  data.sessions.splice(dupSessIdx+1,0,copy);
+  // Assign block to chosen day
+  const dayChip=document.querySelector('#dup-day-chips .chip.sa');
+  const dayVal=dayChip?dayChip.dataset.val:null;
+  if(dayVal&&dayVal!=='none'){
+    const di=parseInt(dayVal);
+    if(!data.weekBlocks)data.weekBlocks=defaultWeek();
+    const nm=(original.name||'').toLowerCase();
+    const btype=nm.includes('cardio')||nm.includes('zona')||nm.includes('carrera')?'cardio':'fuerza';
+    data.weekBlocks[di].blocks.push({id:uid(),type:btype,label:copy.name,detail:''});
+  }
+  saveDB();closeModal('modal-dup-session');renderEditor();
+  dupSessIdx=null;
 }
 // ─── COPY SESSION ─────────────────────────────────────────────────────────────
 let copySessIdx=null;
