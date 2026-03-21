@@ -418,7 +418,7 @@ textarea.fi{resize:vertical;min-height:70px;}
 .ex-dd-pat{padding:3px 9px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--text3);cursor:pointer;font-size:11px;font-family:var(--font-b);white-space:nowrap;transition:all .12s;margin-right:4px;}
 .ex-dd-pat:hover{color:var(--text);border-color:var(--border2);}
 .ex-dd-pat.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:600;}
-.ex-dd-items{padding:5px;}
+.ex-dd-items{padding:5px;max-height:220px;overflow-y:auto;}
 .ex-dd-item{padding:8px 9px;border-radius:6px;cursor:pointer;transition:background .1s;display:flex;flex-direction:column;gap:1px;}
 .ex-dd-item:hover{background:var(--surface);}
 .ex-dd-item.highlighted{background:var(--accent-dim);}
@@ -634,6 +634,20 @@ textarea.fi{resize:vertical;min-height:70px;}
     <div class="btn-row">
       <button class="btn btn-p" onclick="confirmDuplicateSession()">Duplicar</button>
       <button class="btn btn-s" onclick="closeModal('modal-dup-session')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR MACROCICLO -->
+<div class="modal-bg" id="modal-edit-macro">
+  <div class="modal">
+    <div class="modal-title">Editar macrociclo</div>
+    <div class="fg"><label class="fl">Nombre</label><input class="fi" id="edit-macro-name" placeholder="Macrociclo 1..."></div>
+    <div class="fg"><label class="fl">Fecha de inicio</label><input class="fi" id="edit-macro-start" type="date"></div>
+    <div class="fg"><label class="fl">Objetivo</label><textarea class="fi" id="edit-macro-obj" placeholder="Descripcion del objetivo..."></textarea></div>
+    <div class="btn-row">
+      <button class="btn btn-p" onclick="confirmEditMacro()">Guardar</button>
+      <button class="btn btn-s" onclick="closeModal('modal-edit-macro')">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1675,6 +1689,11 @@ function deleteMeso(mi,msi){
 let editorContext={macroIdx:null,mesoIdx:null};
 function loadMesoToEditor(mi,msi){
   editorContext={macroIdx:mi,mesoIdx:msi};
+  var c2=DB.clients.find(function(x){return x.id===cid;});
+  if(c2&&c2.macros&&c2.macros[mi]&&c2.macros[mi].mesos&&c2.macros[mi].mesos[msi]){
+    var meso=c2.macros[mi].mesos[msi];
+    if(!meso.sessions||!meso.sessions.length){meso.sessions=autoGenSessions(c2,meso.fase);saveDB();}
+  }
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tab')[2].classList.add('active');
@@ -2631,7 +2650,7 @@ function renderProgramaResumen(){
         +'<div class="macro-collapse-title'+(isCurrent?' is-current':'')+'">'+(isCurrent?'● ':'')+macro.name+'</div>'
         +'<div class="macro-collapse-meta">'+(macro.start?fmtDate(macro.start)+' · ':'')+macro.dur+' semanas'+(isCurrent?' · Activo':'')+'</div>'
         +'</div>'
-        +'<span class="macro-collapse-arrow">▼</span>'
+        +'<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-s btn-sm" style="font-size:10px;padding:2px 8px" onclick="event.stopPropagation();editMacroInline('+realIdx+')">Editar</button><span class="macro-collapse-arrow">▼</span></div>'
         +'</div>'
         +'<div class="macro-collapse-body">'
         +(macro.obj?'<div style="font-size:12px;color:var(--text2);margin-bottom:12px;padding:8px 10px;background:var(--surface);border-radius:var(--rs);border-left:3px solid var(--border2)">'+macro.obj+'</div>':'')
