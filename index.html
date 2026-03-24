@@ -351,7 +351,7 @@ textarea.fi{resize:vertical;min-height:70px;}
 .macro-meta{font-size:11px;color:var(--text3);margin-top:3px;}
 .macro-obj{font-size:12px;color:var(--text2);line-height:1.6;padding:9px 12px;background:var(--surface);border-radius:var(--rs);border-left:3px solid var(--border2);margin-bottom:14px;}
 .meso-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
-.meso-pill{flex:1;min-width:130px;max-width:200px;border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;cursor:pointer;transition:border-color .15s;}
+.meso-pill{flex:1;min-width:130px;max-width:200px;border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;cursor:default;transition:border-color .15s;}
 .meso-pill:hover{border-color:var(--border2);}
 .meso-pill.meso-active{border-color:var(--accent);background:var(--accent-dim);}
 .meso-pill-fase{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
@@ -1070,7 +1070,6 @@ textarea.fi{resize:vertical;min-height:70px;}
 
     <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
       <button class="btn btn-p" onclick="openModal('modal-new-macro')">+ Macrociclo manual</button>
-      <button class="btn btn-s" id="btn-new-meso" onclick="openModal('modal-new-meso')" style="display:none">+ Mesociclo</button>
     </div>
     <div id="timeline-container"></div>
   </div>
@@ -1220,44 +1219,6 @@ textarea.fi{resize:vertical;min-height:70px;}
   </div>
 </div>
 
-<!-- NEW: mesocycle detail view (dedicated page) -->
-<div class="page" id="page-mesocycle-detail">
-  <div class="p-title" id="meso-detail-title">Mesociclo</div>
-  <div class="p-sub" id="meso-detail-macro">—</div>
-  <div class="f-section">
-    <div class="f-stitle">Datos del mesociclo</div>
-    <div class="fg"><label class="fl">Periodo</label><div id="meso-detail-date-range" style="font-size:13px;color:var(--text2);line-height:1.5">—</div></div>
-    <div class="fg"><label class="fl">Nombre</label><input class="fi" id="meso-detail-name" type="text" placeholder="Ej. Mesociclo 1 — Adaptación"></div>
-    <div class="fg2">
-      <div class="fg"><label class="fl">Fecha de inicio</label><input class="fi" id="meso-detail-start" type="date"></div>
-      <div class="fg"><label class="fl">Semanas</label>
-        <div class="chips" id="chips-meso-detail-dur">
-          <button class="chip" data-val="2" onclick="chip(this,'chips-meso-detail-dur','sa')">2 sem</button>
-          <button class="chip" data-val="3" onclick="chip(this,'chips-meso-detail-dur','sa')">3 sem</button>
-          <button class="chip sa" data-val="4" onclick="chip(this,'chips-meso-detail-dur','sa')">4 sem</button>
-          <button class="chip" data-val="6" onclick="chip(this,'chips-meso-detail-dur','sa')">6 sem</button>
-          <button class="chip" data-val="8" onclick="chip(this,'chips-meso-detail-dur','sa')">8 sem</button>
-        </div>
-      </div>
-    </div>
-    <div class="fg"><label class="fl">Fase</label>
-      <div class="chips" id="chips-meso-detail-fase">
-        <button class="chip st" data-val="Adaptación" onclick="chip(this,'chips-meso-detail-fase','st')">Adaptación</button>
-        <button class="chip" data-val="Acumulación" onclick="chip(this,'chips-meso-detail-fase','st')">Acumulación</button>
-        <button class="chip" data-val="Intensificación" onclick="chip(this,'chips-meso-detail-fase','sp')">Intensificación</button>
-        <button class="chip" data-val="Peak" onclick="chip(this,'chips-meso-detail-fase','sc')">Peak</button>
-        <button class="chip" data-val="Descarga" onclick="chip(this,'chips-meso-detail-fase','sam')">Descarga</button>
-      </div>
-    </div>
-    <div class="fg"><label class="fl">Objetivo del mesociclo</label><textarea class="fi" id="meso-detail-obj" placeholder="Ej. Aumentar volumen de fuerza gradualmente"></textarea></div>
-  </div>
-  <div class="btn-row">
-    <button class="btn btn-p" onclick="saveMesocycleDetail()">Guardar cambios</button>
-    <button class="btn btn-s" onclick="backFromMesocycleDetail()">Volver al macrociclo</button>
-    <button class="btn btn-d" onclick="deleteMesocycleFromDetail()">Eliminar mesociclo</button>
-  </div>
-</div>
-
 </main>
 </div>
 
@@ -1266,8 +1227,6 @@ textarea.fi{resize:vertical;min-height:70px;}
 const KEY='jsc_v3';
 let DB={clients:[]};
 let cid=null,editId=null,pendingDay=null,pendingMacroId=null;
-// NEW: mesocycle detail navigation — { macroIdx, mesoIdx, clientId }
-let selectedMeso=null;
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────────
 function ini(n){return n?n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase():'?';}
@@ -1576,15 +1535,14 @@ function deleteCurrentClient(){
 
 // ─── CLIENT PROFILE ────────────────────────────────────────────────────────────
 function openClient(id){
-  cid=id;selectedMeso=null;window.selectedMeso=null;
-  const c=DB.clients.find(x=>x.id===id);if(!c)return;
+  cid=id;const c=DB.clients.find(x=>x.id===id);if(!c)return;
   document.getElementById('prof-head').innerHTML=`<div class="prof-av">${ini(c.nombre)}</div><div><div class="prof-name">${c.nombre}</div><div style="color:var(--text2);font-size:12px">${c.edad?c.edad+' años':''} ${c.peso?'· '+c.peso+' kg':''} ${c.grasa?'· '+c.grasa+'% grasa':''}</div><div class="prof-tags"><span class="badge ${objB[c.objetivo]||''}">${objL[c.objetivo]||'Sin objetivo'}</span><span class="badge" style="background:var(--surface2);color:var(--text3)">${c.nivel||'principiante'}</span><span class="badge" style="background:var(--surface2);color:var(--text3)">${c.dias}d · ${c.duracion}min</span>${c.updatedAt?'<span class="badge" style="background:var(--surface2);color:var(--text3)">'+c.updatedAt+'</span>':''}</div></div>`;
   const recov=getRecov(c);
   const dots=Array(10).fill(0).map((_,i)=>`<div class="r-dot ${i<recov?(recov>=8?'g':recov>=5?'a':'r'):''}"></div>`).join('');
   document.getElementById('prof-data').innerHTML=`<div class="dc"><div class="dc-l">Sueño/noche</div><div class="dc-v">${c.sueno||'—'} h</div></div><div class="dc"><div class="dc-l">Estrés</div><div class="dc-v" style="text-transform:capitalize">${c.estres||'—'}</div></div><div class="dc"><div class="dc-l">Recuperación</div><div class="dc-v sm">${recov}/10<div class="r-bar">${dots}</div></div></div><div class="dc"><div class="dc-l">Cardio preferido</div><div class="dc-v sm" style="text-transform:capitalize">${c.cardio||'—'}</div></div><div class="dc"><div class="dc-l">Separación</div><div class="dc-v sm">${({misma:'Misma sesión','6h':'Mín. 6 h','24h':'Días distintos'})[c.separacion]||'—'}</div></div><div class="dc"><div class="dc-l">Cliente desde</div><div class="dc-v sm">${c.createdAt||'—'}</div></div>${c.obs?'<div class="dc" style="grid-column:1/-1"><div class="dc-l">Observaciones</div><div class="dc-v sm">'+c.obs+'</div></div>':''}`;
   document.getElementById('notas-input').value=c.notas||'';
   document.getElementById('rev-date').value=c.revision||'';
-  document.getElementById('btn-new-meso').style.display=c.macros&&c.macros.length?'':'none';
+  
 
   // Alertas clínicas en tab datos
   const alerts=getAlerts(c);
@@ -1626,7 +1584,7 @@ function saveNotes(){
 function renderTimeline(){
   var c=DB.clients.find(function(x){return x.id===cid;});if(!c)return;
   var el=document.getElementById('timeline-container');
-  document.getElementById('btn-new-meso').style.display=c.macros&&c.macros.length?'inline-flex':'none';
+  
   if(!c.macros||!c.macros.length){
     el.innerHTML='<div class="empty"><div class="empty-ico">&#128197;</div><div class="empty-t">Sin macrociclos</div><div class="empty-s">Crea el primer macrociclo para comenzar la planificacion</div></div>';
     return;
@@ -1634,8 +1592,11 @@ function renderTimeline(){
   var today=new Date();today.setHours(0,0,0,0);
   var fCol={Adaptacion:'var(--teal)',Acumulacion:'var(--blue)',Intensificacion:'var(--purple)',Peak:'var(--coral)',Descarga:'var(--amber)',Adaptación:'var(--teal)',Acumulación:'var(--blue)',Intensificación:'var(--purple)'};
 
-  el.innerHTML=c.macros.map(function(macro,mi){
-    var isLast=mi===c.macros.length-1;
+  // Mostrar más reciente primero
+  var macrosOrdenados=c.macros.slice().reverse();
+  el.innerHTML=macrosOrdenados.map(function(macro,idx){
+    var mi=c.macros.length-1-idx; // índice real en el array
+    var isLast=mi===c.macros.length-1; // isLast = macrociclo más reciente
     var endDateStr='';
     if(macro.start&&macro.dur){
       var ed=new Date(macro.start);ed.setDate(ed.getDate()+parseInt(macro.dur)*7);
@@ -1656,12 +1617,16 @@ function renderTimeline(){
         }
         var dateStr=meso.start?fmtDate(meso.start)+' &bull; '+meso.weeks+' sem':meso.weeks+' sem';
         var objShort=meso.obj?meso.obj.substring(0,70)+(meso.obj.length>70?'&hellip;':''):'';
-        return '<div class="meso-pill'+(isActive?' meso-active':'')+'" style="border-left:3px solid '+col+'" onclick="openMesocycleDetail('+mi+','+msi+')" title="Ver y editar mesociclo">'
+        return '<div class="meso-pill'+(isActive?' meso-active':'')+'" style="border-left:3px solid '+col+'">'
           +'<div class="meso-pill-fase" style="color:'+col+'">'+meso.fase+'</div>'
           +'<div class="meso-pill-name">'+meso.name+'</div>'
           +'<div class="meso-pill-dates">'+dateStr+'</div>'
           +(objShort?'<div class="meso-pill-obj">'+objShort+'</div>':'')
           +'<div class="meso-pill-bar"><div class="meso-pill-bar-fill" style="width:'+pct+'%;background:'+col+'"></div></div>'
+          +'<div class="meso-pill-btns">'
+          +'<button class="btn btn-s btn-sm" style="font-size:10px;padding:3px 9px" onclick="loadMesoToEditor('+mi+','+msi+')">Editar</button>'
+          +'<button class="btn btn-sm" style="font-size:10px;padding:3px 9px;background:var(--red-dim);color:var(--red);border:1px solid var(--red)" onclick="deleteMeso('+mi+','+msi+')">&#10005;</button>'
+          +'</div>'
           +'</div>';
       }).join('')+'</div>';
     } else {
@@ -1679,7 +1644,7 @@ function renderTimeline(){
       +(macro.obj?'<div class="macro-obj">'+macro.obj+'</div>':'')
       +mesosHtml
       +'<div class="macro-actions">'
-      +'<button class="btn btn-s btn-sm" onclick="openModal(\'modal-new-meso\')">+ Mesociclo</button>'
+      +'<button class="btn btn-s btn-sm" onclick="openNewMeso('+mi+')">+ Mesociclo</button>'
       +'</div>'
       +'</div>';
   }).join('');
@@ -1695,10 +1660,15 @@ function confirmNewMacro(){
   c.macros.push({id:uid(),name,start,dur,obj,mesos:[]});
   saveDB();closeModal('modal-new-macro');
   document.getElementById('macro-name').value='';document.getElementById('macro-start').value='';document.getElementById('macro-obj').value='';
-  document.getElementById('btn-new-meso').style.display='inline-flex';
+  
   renderTimeline();
 }
 
+var targetMacroIdx=null;
+function openNewMeso(mi){
+  targetMacroIdx=(mi!==undefined&&mi!==null)?mi:null;
+  openModal('modal-new-meso');
+}
 function confirmNewMeso(){
   const c=DB.clients.find(x=>x.id===cid);if(!c||!c.macros||!c.macros.length)return;
   const name=document.getElementById('meso-name').value.trim()||'Nuevo mesociclo';
@@ -1706,10 +1676,12 @@ function confirmNewMeso(){
   const weeks=getChip('chips-meso-dur')||'4';
   const fase=getChip('chips-meso-fase')||'Adaptación';
   const obj=document.getElementById('meso-obj').value.trim();
-  const macro=c.macros[c.macros.length-1];
-  if(!macro.mesos)macro.mesos=[];
+  // Use targetMacroIdx if set, otherwise last macro
+  const mi=targetMacroIdx!==null?targetMacroIdx:c.macros.length-1;
+  const macro=c.macros[mi];
+  if(!macro||!macro.mesos)macro.mesos=[];
   macro.mesos.push({id:uid(),name,start,weeks,fase,obj,weekBlocks:defaultWeek(),sessions:[]});
-  saveDB();closeModal('modal-new-meso');
+  saveDB();closeModal('modal-new-meso');targetMacroIdx=null;
   document.getElementById('meso-name').value='';document.getElementById('meso-start').value='';document.getElementById('meso-obj').value='';
   renderTimeline();
 }
@@ -1721,83 +1693,6 @@ function deleteMacro(mi){
 function deleteMeso(mi,msi){
   if(!confirm('¿Eliminar este mesociclo?'))return;
   const c=DB.clients.find(x=>x.id===cid);c.macros[mi].mesos.splice(msi,1);saveDB();renderTimeline();
-}
-
-// NEW: mesocycle navigation — open dedicated detail page (replaces inline edit on meso-pill)
-function openMesocycleDetail(mi,msi){
-  if(!cid)return;
-  selectedMeso={macroIdx:mi,mesoIdx:msi,clientId:cid};
-  window.selectedMeso=selectedMeso;
-  populateMesocycleDetailView();
-  goPage('mesocycle-detail');
-}
-function populateMesocycleDetailView(){
-  if(!selectedMeso)return;
-  const c=DB.clients.find(function(x){return x.id===selectedMeso.clientId;});
-  if(!c||!c.macros||!c.macros[selectedMeso.macroIdx]||!c.macros[selectedMeso.macroIdx].mesos)return;
-  const macro=c.macros[selectedMeso.macroIdx];
-  const meso=macro.mesos[selectedMeso.mesoIdx];
-  if(!meso)return;
-  document.getElementById('meso-detail-title').textContent=meso.name||'Mesociclo';
-  document.getElementById('meso-detail-macro').textContent='Macrociclo: '+(macro.name||'—');
-  document.getElementById('meso-detail-name').value=meso.name||'';
-  document.getElementById('meso-detail-start').value=meso.start||'';
-  document.getElementById('meso-detail-obj').value=meso.obj||'';
-  var wk=String(meso.weeks!=null?meso.weeks:'4');
-  setChip('chips-meso-detail-dur',wk);
-  var dr=document.getElementById('meso-detail-date-range');
-  if(meso.start){
-    var endStr=addDaysToDate(meso.start,parseInt(wk,10)*7);
-    dr.textContent=fmtDate(meso.start)+' — '+wk+' sem · fin '+fmtDate(endStr);
-  }else{
-    dr.textContent=wk+' semanas (sin fecha de inicio)';
-  }
-  const f=meso.fase||'Adaptación';
-  setChip('chips-meso-detail-fase',f);
-}
-function saveMesocycleDetail(){
-  if(!selectedMeso)return;
-  const c=DB.clients.find(function(x){return x.id===selectedMeso.clientId;});
-  if(!c||!c.macros||!c.macros[selectedMeso.macroIdx]||!c.macros[selectedMeso.macroIdx].mesos)return;
-  const meso=c.macros[selectedMeso.macroIdx].mesos[selectedMeso.mesoIdx];
-  if(!meso)return;
-  meso.name=document.getElementById('meso-detail-name').value.trim()||meso.name;
-  meso.start=document.getElementById('meso-detail-start').value;
-  meso.weeks=getChip('chips-meso-detail-dur')||meso.weeks;
-  meso.fase=getChip('chips-meso-detail-fase')||meso.fase;
-  meso.obj=document.getElementById('meso-detail-obj').value.trim();
-  saveDB();
-  populateMesocycleDetailView();
-  alert('Cambios guardados.');
-}
-function backFromMesocycleDetail(){
-  selectedMeso=null;
-  window.selectedMeso=null;
-  goPage('profile');
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.tc').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.tab')[2].classList.add('active');
-  document.getElementById('tc-timeline').classList.add('active');
-  renderTimeline();
-  planPreFill();
-}
-function deleteMesocycleFromDetail(){
-  if(!selectedMeso)return;
-  if(!confirm('¿Eliminar este mesociclo?'))return;
-  const c=DB.clients.find(function(x){return x.id===selectedMeso.clientId;});
-  if(!c||!c.macros||!c.macros[selectedMeso.macroIdx])return;
-  const mi=selectedMeso.macroIdx,msi=selectedMeso.mesoIdx;
-  c.macros[mi].mesos.splice(msi,1);
-  saveDB();
-  selectedMeso=null;
-  window.selectedMeso=null;
-  goPage('profile');
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.tc').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.tab')[2].classList.add('active');
-  document.getElementById('tc-timeline').classList.add('active');
-  renderTimeline();
-  planPreFill();
 }
 
 let editorContext={macroIdx:null,mesoIdx:null};
