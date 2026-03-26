@@ -942,8 +942,7 @@ textarea.fi{resize:vertical;min-height:70px;}
     <button class="tab active" onclick="showTab(this,'tc-datos')">Datos</button>
     <button class="tab" onclick="showTab(this,'tc-programa');renderProgramaResumen()">Programa</button>
     <button class="tab" onclick="showTab(this,'tc-timeline');renderTimeline();planPreFill()">Planificación</button>
-    <button class="tab" id="tab-meso-detail" style="display:none" onclick="showTab(this,'tc-meso-detail')">&#128197; Mesociclo</button>
-    <button class="tab" onclick="showTab(this,'tc-editor');renderEditor()">Editor</button>
+    <button class="tab" id="tab-meso-detail" onclick="showTab(this,'tc-meso-detail')">Mesociclo</button>
     <button class="tab" onclick="showTab(this,'tc-evidencia')">Evidencia</button>
     <button class="tab" onclick="showTab(this,'tc-notas')">Notas</button>
     <button class="tab" onclick="showTab(this,'tc-historial');renderHistorial()">Historial</button>
@@ -1739,7 +1738,6 @@ function loadMesoToEditor(mi,msi){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.tc').forEach(function(t){t.classList.remove('active');});
   var tabBtn=document.getElementById('tab-meso-detail');
-  tabBtn.style.display='inline-flex';
   tabBtn.classList.add('active');
   document.getElementById('tc-meso-detail').classList.add('active');
 }
